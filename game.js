@@ -34,13 +34,8 @@ class CoinDash extends Phaser.Scene {
     this.bomb.body.setCircle(bombGeom.radius, bombGeom.offsetX, bombGeom.offsetY);
     this.placeBomb();
     this.drones = this.physics.add.group();
-    for (let i = 0; i < c.droneCount; i++) {
-      const drone = this.add.rectangle(90 + i * 270, 100, 26, 26, c.colors.drone);
-      this.drones.add(drone);
-      drone.body.setCollideWorldBounds(true).setBounce(1, 1);
-      const angle = (35 + i * 105) * Math.PI / 180;
-      drone.body.setVelocity(Math.cos(angle) * c.droneSpeed, Math.sin(angle) * c.droneSpeed);
-    }
+    for (let i = 0; i < c.droneCount; i++) this.addDrone(90 + i * 270, 100, (35 + i * 105) * Math.PI / 180);
+    this.nextDroneAt = c.coinsPerExtraDrone;
     this.physics.add.overlap(this.player, this.coin, () => {
       if (this.finished) return;
       this.score++;
@@ -52,6 +47,10 @@ class CoinDash extends Phaser.Scene {
       // Fresh random heading at the (now faster) speed, rather than
       // continuing on the pre-teleport direction.
       this.setCoinSpeed(this.coinSpeed);
+      if (this.score >= this.nextDroneAt) {
+        this.nextDroneAt += c.coinsPerExtraDrone;
+        this.spawnDrone();
+      }
     });
     this.physics.add.overlap(this.player, this.bomb, () => {
       if (this.finished) return;
@@ -84,6 +83,26 @@ class CoinDash extends Phaser.Scene {
       this.physics.resume();
       this.pauseText.destroy();
     }
+  }
+
+  addDrone(x, y, angle) {
+    const c = COIN_DASH;
+    const drone = this.add.rectangle(x, y, 26, 26, c.colors.drone);
+    this.drones.add(drone);
+    drone.body.setCollideWorldBounds(true).setBounce(1, 1);
+    drone.body.setVelocity(Math.cos(angle) * c.droneSpeed, Math.sin(angle) * c.droneSpeed);
+  }
+
+  spawnDrone() {
+    const c = COIN_DASH;
+    // Keep new drones well away from the player so they can't cause an instant loss.
+    let x, y;
+    do {
+      x = Phaser.Math.Between(40, c.width - 40);
+      y = Phaser.Math.Between(84, c.height - 40);
+    } while (Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y) < 150);
+    // A diagonal-ish heading (25-65 degrees within a random quadrant).
+    this.addDrone(x, y, Phaser.Math.DegToRad(Phaser.Math.Between(25, 65) + 90 * Phaser.Math.Between(0, 3)));
   }
 
   // Bakes a small radial-gradient texture (gold edge to pale highlight center)
@@ -219,7 +238,7 @@ class CoinDash extends Phaser.Scene {
       this.setCoinSpeed(this.coinSpeed * COIN_DASH.coinIdleDecay);
     }
     const seconds = Math.max(0, Math.ceil((this.deadline - this.time.now) / 1000));
-    this.hud.setText(`Coins: ${this.score}                       Time: ${seconds}s`);
+    this.hud.setText(`Coins: ${this.score}          Drones: ${this.drones.getLength()}          Time: ${seconds}s`);
     if (seconds === 0) this.finish('Time is up!');
   }
 

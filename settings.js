@@ -5,6 +5,7 @@ window.COIN_DASH = {
   roundSeconds: 45,
   playerSpeed: 240,
   droneSpeed: 105,
+  coinsPerExtraDrone: 5,
   droneCount: 3,
   coinBaseSpeed: 60,
   coinSpeedIncrement: 10,
