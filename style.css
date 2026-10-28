@@ -1,9 +1,14 @@
 * { box-sizing: border-box; }
 body { margin: 0; background: #0a1120; color: #e5edf7; font: 17px/1.5 system-ui, sans-serif; }
-main { max-width: 850px; margin: 30px auto; padding: 0 20px; }
+/* Logo width tracks viewport height; --chrome = vertical space used by everything except the game. */
+:root { --logo-w: clamp(160px, 32dvh, 420px); --chrome: calc(116px + var(--logo-w) / 3.925); }
+main { max-width: min(1400px, 96vw); margin: 8px auto; padding: 0 16px; }
+header > p { margin: 0 0 6px; }
+main > p { margin: 6px 0 0; }
 header > p:first-child { color: #71e8ce; font-size: 12px; letter-spacing: .15em; }
 h1 { margin: 0; font-size: 40px; }
-#game { border: 1px solid #34445e; border-radius: 12px; overflow: hidden; }
+/* Largest 8:5 box that fits both the column width and the viewport height; Phaser.Scale.FIT fills it. */
+#game { width: min(100%, max(320px, calc((100dvh - var(--chrome)) * 1.6))); aspect-ratio: 8 / 5; margin: 0 auto; border: 1px solid #34445e; border-radius: 12px; overflow: hidden; }
 canvas { display: block; }
-h1.logo { margin: 4px 0 6px; line-height: 0; }
-h1.logo img { display: block; width: 420px; max-width: 100%; height: auto; }
+h1.logo { margin: 2px 0 4px; line-height: 0; }
+h1.logo img { display: block; width: var(--logo-w); max-width: 100%; height: auto; }
