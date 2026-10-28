@@ -14,7 +14,9 @@ class CoinDash extends Phaser.Scene {
     this.hud = this.add.text(18, 12, '', { font: '18px monospace', color: '#ffffff' });
     this.player = this.add.image(c.width / 2, c.height / 2, window.makeDragonTexture(this));
     this.physics.add.existing(this.player);
-    this.player.body.setSize(24, 24, true); // same 24x24 hitbox as the old square, centred
+    // Same 24x24 hitbox as the old square, placed over the dragon's head and front body (not the tail).
+    const hit = window.DRAGON_HITBOX;
+    this.player.body.setSize(hit.size, hit.size, false).setOffset(hit.x, hit.y);
     this.player.body.setCollideWorldBounds(true);
     this.coin = this.add.circle(100, 100, 9, c.colors.coin);
     this.physics.add.existing(this.coin);
@@ -81,7 +83,11 @@ class CoinDash extends Phaser.Scene {
       - Number(this.cursors.up.isDown || this.keys.W.isDown);
     const direction = new Phaser.Math.Vector2(dx, dy).normalize().scale(COIN_DASH.playerSpeed);
     this.player.body.setVelocity(direction.x, direction.y);
-    if (dx !== 0) this.player.setFlipX(dx < 0); // face the direction of travel
+    if (dx !== 0) { // face the direction of travel and mirror the hitbox so it stays on the head
+      const hit = window.DRAGON_HITBOX;
+      this.player.setFlipX(dx < 0);
+      this.player.body.setOffset(dx < 0 ? this.player.width - hit.x - hit.size : hit.x, hit.y);
+    }
     const seconds = Math.max(0, Math.ceil((this.deadline - this.time.now) / 1000));
     this.hud.setText(`Coins: ${this.score}                       Time: ${seconds}s`);
     if (seconds === 0) this.finish('Time is up!');
