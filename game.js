@@ -18,7 +18,14 @@ class CoinDash extends Phaser.Scene {
     this.coin = this.add.image(100, 100, 'coin');
     this.physics.add.existing(this.coin);
     this.coin.body.setCircle(9);
+    this.coin.body.setCollideWorldBounds(true).setBounce(1, 1);
+    this.coinSpeed = c.coinBaseSpeed;
+    this.lastCoinPickup = this.time.now;
+    this.idleSlowdowns = 0;
     this.placeCoin();
+    // placeCoin() -> body.reset() just zeroed the velocity, so setCoinSpeed()
+    // sees a stationary body and picks a fresh random direction for us.
+    this.setCoinSpeed(this.coinSpeed);
     this.bomb = this.add.circle(700, 400, 9, c.colors.bomb);
     this.physics.add.existing(this.bomb);
     this.bomb.body.setCircle(9);
@@ -34,7 +41,13 @@ class CoinDash extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.coin, () => {
       if (this.finished) return;
       this.score++;
+      this.lastCoinPickup = this.time.now;
+      this.idleSlowdowns = 0;
+      this.setCoinSpeed(this.coinSpeed + c.coinSpeedIncrement);
       this.placeCoin();
+      // Fresh random heading at the (now faster) speed, rather than
+      // continuing on the pre-teleport direction.
+      this.setCoinSpeed(this.coinSpeed);
     });
     this.physics.add.overlap(this.player, this.bomb, () => {
       if (this.finished) return;
@@ -65,6 +78,19 @@ class CoinDash extends Phaser.Scene {
     });
     g.generateTexture('coin', radius * 2, radius * 2);
     g.destroy();
+  }
+
+  // Recomputes the coin's velocity from its current direction of travel at a
+  // new speed (clamped to the configured min/max), so changing speed never
+  // picks an arbitrary new heading. Right after body.reset() the body is
+  // stationary (velocity 0,0), in which case this picks a fresh random
+  // heading instead.
+  setCoinSpeed(newSpeed) {
+    const c = COIN_DASH;
+    this.coinSpeed = Phaser.Math.Clamp(newSpeed, c.coinMinSpeed, c.coinMaxSpeed);
+    const v = this.coin.body.velocity;
+    const angle = (v.x === 0 && v.y === 0) ? Phaser.Math.Angle.Random() : Math.atan2(v.y, v.x);
+    this.coin.body.setVelocity(Math.cos(angle) * this.coinSpeed, Math.sin(angle) * this.coinSpeed);
   }
 
   placeCoin() {
@@ -100,6 +126,15 @@ class CoinDash extends Phaser.Scene {
       - Number(this.cursors.up.isDown || this.keys.W.isDown);
     const direction = new Phaser.Math.Vector2(dx, dy).normalize().scale(COIN_DASH.playerSpeed);
     this.player.body.setVelocity(direction.x, direction.y);
+    // Every full 10s window without a pickup, ease the coin's speed down a
+    // notch (toward coinMinSpeed) so an idle player gets a breather. Gated by
+    // idleSlowdowns so this fires once per window, not every frame.
+    const idleMs = this.time.now - this.lastCoinPickup;
+    const dueSlowdowns = Math.floor(idleMs / (COIN_DASH.coinIdleSeconds * 1000));
+    if (dueSlowdowns > this.idleSlowdowns) {
+      this.idleSlowdowns = dueSlowdowns;
+      this.setCoinSpeed(this.coinSpeed * COIN_DASH.coinIdleDecay);
+    }
     const seconds = Math.max(0, Math.ceil((this.deadline - this.time.now) / 1000));
     this.hud.setText(`Coins: ${this.score}                       Time: ${seconds}s`);
     if (seconds === 0) this.finish('Time is up!');
