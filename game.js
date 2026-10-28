@@ -14,7 +14,8 @@ class CoinDash extends Phaser.Scene {
     this.player = this.add.rectangle(c.width / 2, c.height / 2, 24, 24, c.colors.player);
     this.physics.add.existing(this.player);
     this.player.body.setCollideWorldBounds(true);
-    this.coin = this.add.circle(100, 100, 9, c.colors.coin);
+    this.makeCoinTexture();
+    this.coin = this.add.image(100, 100, 'coin');
     this.physics.add.existing(this.coin);
     this.coin.body.setCircle(9);
     this.placeCoin();
@@ -35,6 +36,26 @@ class CoinDash extends Phaser.Scene {
     this.cursors = this.input.keyboard.createCursorKeys();
     this.keys = this.input.keyboard.addKeys('W,A,S,D,R');
     this.input.keyboard.on('keydown-R', () => this.scene.restart());
+  }
+
+  // Bakes a small radial-gradient texture (gold edge to pale highlight center)
+  // so the coin reads as shiny instead of a flat fill, drawn entirely in-engine.
+  makeCoinTexture() {
+    const c = COIN_DASH;
+    const radius = 9;
+    const rings = [
+      { r: radius, color: c.colors.coin },
+      { r: radius * 0.78, color: 0xffdc85 },
+      { r: radius * 0.56, color: 0xffe8a5 },
+      { r: radius * 0.33, color: c.colors.coinHighlight }
+    ];
+    const g = this.add.graphics();
+    rings.forEach(({ r, color }) => {
+      g.fillStyle(color, 1);
+      g.fillCircle(radius, radius, r);
+    });
+    g.generateTexture('coin', radius * 2, radius * 2);
+    g.destroy();
   }
 
   placeCoin() {
