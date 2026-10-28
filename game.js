@@ -7,6 +7,8 @@ class CoinDash extends Phaser.Scene {
     this.score = 0;
     this.finished = false;
     this.paused = false;
+    // Scene instance survives R restart, so this.best also covers blocked storage.
+    this.best = Math.max(this.best || 0, this.loadBest());
     this.deadline = this.time.now + c.roundSeconds * 1000;
     this.physics.world.setBounds(0, 44, c.width, c.height - 44);
     window.drawSunsetSky(this, c.width, c.height);
@@ -68,6 +70,17 @@ class CoinDash extends Phaser.Scene {
     this.keys = this.input.keyboard.addKeys('W,A,S,D,R');
     this.input.keyboard.on('keydown-R', () => this.scene.restart());
     this.input.keyboard.on('keydown-P', () => this.togglePause());
+  }
+
+  loadBest() {
+    try {
+      const n = parseInt(window.localStorage.getItem('coinDash.best'), 10);
+      return n > 0 ? n : 0;
+    } catch (e) { return 0; }
+  }
+
+  saveBest() {
+    try { window.localStorage.setItem('coinDash.best', String(this.best)); } catch (e) { /* storage blocked */ }
   }
 
   togglePause() {
@@ -257,7 +270,7 @@ class CoinDash extends Phaser.Scene {
       this.setCoinSpeed(this.coinSpeed * COIN_DASH.coinIdleDecay);
     }
     const seconds = Math.max(0, Math.ceil((this.deadline - this.time.now) / 1000));
-    this.hud.setText(`Coins: ${this.score}          Drones: ${this.drones.getLength()}          Time: ${seconds}s`);
+    this.hud.setText(`Coins: ${this.score}      Drones: ${this.drones.getLength()}      Time: ${seconds}s      Best: ${Math.max(this.best, this.score)}`);
     if (seconds === 0) this.finish('Time is up!');
   }
 
@@ -266,9 +279,14 @@ class CoinDash extends Phaser.Scene {
     this.finished = true;
     this.physics.pause();
     const c = COIN_DASH;
-    this.add.rectangle(c.width / 2, c.height / 2, 460, 150, 0x0a1120, 0.95);
+    const newBest = this.score > this.best;
+    if (newBest) {
+      this.best = this.score;
+      this.saveBest();
+    }
+    this.add.rectangle(c.width / 2, c.height / 2, 460, 190, 0x0a1120, 0.95);
     this.add.text(c.width / 2, c.height / 2,
-      `${reason}\n${this.score} coins collected\nPress R to try again`,
+      `${reason}\n${this.score} coins collected\n${newBest ? 'New best!' : `Best: ${this.best}`}\nPress R to try again`,
       { font: '24px monospace', color: '#ffffff', align: 'center', lineSpacing: 12 }
     ).setOrigin(0.5);
   }
