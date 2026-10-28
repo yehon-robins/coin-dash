@@ -3,7 +3,7 @@
 // returns the key of the first. spinDrone(drone) swaps between them based on how far the
 // drone has moved, so the rotors stop whenever physics is paused (P) or the round ends.
 (function () {
-  const SIZE = 40;              // texture is 40x40; the physics body stays 26x26 (set in game.js)
+  const SIZE = 40;              // texture is 40x40; the physics body is 26x26 in texture pixels (set in game.js)
   const KEYS = ['drone-quad-a', 'drone-quad-b'];
   const OUTLINE = 0x1a0509;     // dark outline keeps the drone readable on light/warm backgrounds
   const ROTOR_RIM = 0xffe3e8;   // pale rim keeps it readable on dark backgrounds
