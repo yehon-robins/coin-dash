@@ -6,6 +6,7 @@ class CoinDash extends Phaser.Scene {
     const c = COIN_DASH;
     this.score = 0;
     this.finished = false;
+    this.paused = false;
     this.deadline = this.time.now + c.roundSeconds * 1000;
     this.physics.world.setBounds(0, 44, c.width, c.height - 44);
     this.add.grid(c.width / 2, c.height / 2, c.width, c.height, 40, 40,
@@ -14,6 +15,7 @@ class CoinDash extends Phaser.Scene {
     this.player = this.add.rectangle(c.width / 2, c.height / 2, 24, 24, c.colors.player);
     this.physics.add.existing(this.player);
     this.player.body.setCollideWorldBounds(true);
+    this.velocity = new Phaser.Math.Vector2(c.playerSpeed, 0);
     this.makeCoinTexture();
     this.coin = this.add.image(100, 100, 'coin');
     this.physics.add.existing(this.coin);
@@ -42,6 +44,7 @@ class CoinDash extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.coin, () => {
       if (this.finished) return;
       this.score++;
+      window.playCoinSound();
       this.lastCoinPickup = this.time.now;
       this.idleSlowdowns = 0;
       this.setCoinSpeed(this.coinSpeed + c.coinSpeedIncrement);
@@ -56,10 +59,31 @@ class CoinDash extends Phaser.Scene {
       this.score = Math.max(0, this.score - 2);
       this.placeBomb();
     });
-    this.physics.add.overlap(this.player, this.drones, () => this.finish('A drone caught you!'));
+    this.physics.add.overlap(this.player, this.drones, () => {
+      if (!this.finished && window.playHurtSound) window.playHurtSound();
+      this.finish('A drone caught you!');
+    });
     this.cursors = this.input.keyboard.createCursorKeys();
     this.keys = this.input.keyboard.addKeys('W,A,S,D,R');
     this.input.keyboard.on('keydown-R', () => this.scene.restart());
+    this.input.keyboard.on('keydown-P', () => this.togglePause());
+  }
+
+  togglePause() {
+    if (this.finished) return;
+    const c = COIN_DASH;
+    this.paused = !this.paused;
+    if (this.paused) {
+      this.pausedAt = this.time.now;
+      this.physics.pause();
+      this.pauseText = this.add.text(c.width / 2, c.height / 2, 'Paused — press P to resume',
+        { font: '24px monospace', color: '#ffffff', backgroundColor: '#0a1120', padding: { x: 24, y: 16 } }
+      ).setOrigin(0.5);
+    } else {
+      this.deadline += this.time.now - this.pausedAt;
+      this.physics.resume();
+      this.pauseText.destroy();
+    }
   }
 
   // Bakes a small radial-gradient texture (gold edge to pale highlight center)
@@ -178,13 +202,13 @@ class CoinDash extends Phaser.Scene {
   }
 
   update() {
-    if (this.finished) return;
+    if (this.finished || this.paused) return;
     const dx = Number(this.cursors.right.isDown || this.keys.D.isDown)
       - Number(this.cursors.left.isDown || this.keys.A.isDown);
     const dy = Number(this.cursors.down.isDown || this.keys.S.isDown)
       - Number(this.cursors.up.isDown || this.keys.W.isDown);
-    const direction = new Phaser.Math.Vector2(dx, dy).normalize().scale(COIN_DASH.playerSpeed);
-    this.player.body.setVelocity(direction.x, direction.y);
+    if (dx || dy) this.velocity.set(dx, dy).normalize().scale(COIN_DASH.playerSpeed);
+    this.player.body.setVelocity(this.velocity.x, this.velocity.y);
     // Every full 10s window without a pickup, ease the coin's speed down a
     // notch (toward coinMinSpeed) so an idle player gets a breather. Gated by
     // idleSlowdowns so this fires once per window, not every frame.
