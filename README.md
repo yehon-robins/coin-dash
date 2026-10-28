@@ -1,6 +1,6 @@
 # Coin Dash — Lab 3 starter
 
-Collect coins, avoid drones, and survive a 45-second round. Move with arrow keys or WASD;
+Collect coins, avoid drones, and survive a one-minute round. Move with arrow keys or WASD;
 press P to pause or resume and R to restart. This is deliberately small so you can add
 features during the lab.
 
