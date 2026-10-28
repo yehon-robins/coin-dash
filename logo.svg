@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 110" width="430" height="110" role="img" aria-labelledby="t">
+  <title id="t">Coin Dash</title>
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff1b8"/>
+      <stop offset="0.45" stop-color="#ffd166"/>
+      <stop offset="1" stop-color="#ff9f43"/>
+    </linearGradient>
+    <radialGradient id="coin" cx="0.38" cy="0.32" r="0.75">
+      <stop offset="0" stop-color="#fff6cf"/>
+      <stop offset="0.5" stop-color="#ffd166"/>
+      <stop offset="1" stop-color="#f08c2e"/>
+    </radialGradient>
+    <g id="word" font-family="'Arial Black','Segoe UI Black','Helvetica Neue',Impact,system-ui,sans-serif"
+       font-weight="900" font-size="66">
+      <text x="70" y="80" textLength="44" lengthAdjust="spacingAndGlyphs">C</text>
+      <text x="174" y="80" textLength="58" lengthAdjust="spacingAndGlyphs">IN</text>
+      <text x="248" y="80" textLength="164" lengthAdjust="spacingAndGlyphs">DASH</text>
+    </g>
+  </defs>
+  <g transform="translate(14 0) skewX(-8)">
+    <!-- speed lines -->
+    <g stroke-linecap="round">
+      <line x1="10" y1="42" x2="60" y2="42" stroke="#ff9f43" stroke-width="6"/>
+      <line x1="0" y1="56" x2="60" y2="56" stroke="#ffd166" stroke-width="7"/>
+      <line x1="18" y1="70" x2="60" y2="70" stroke="#71e8ce" stroke-width="6"/>
+      <line x1="34" y1="84" x2="58" y2="84" stroke="#ff657a" stroke-width="4"/>
+    </g>
+    <!-- drop shadow -->
+    <use href="#word" x="4" y="5" fill="#05080f" stroke="#05080f" stroke-width="10" stroke-linejoin="round"/>
+    <circle cx="148" cy="61" r="26" fill="#05080f"/>
+    <!-- wordmark with dark outline -->
+    <use href="#word" fill="url(#gold)" stroke="#1b1206" stroke-width="7" stroke-linejoin="round" paint-order="stroke"/>
+    <!-- coin as the "O" -->
+    <circle cx="144" cy="56" r="25" fill="url(#coin)" stroke="#1b1206" stroke-width="4"/>
+    <circle cx="144" cy="56" r="17" fill="none" stroke="#e08a1e" stroke-width="3"/>
+    <rect x="140" y="44" width="8" height="24" rx="3" fill="#fff1b8" stroke="#e08a1e" stroke-width="1.5"/>
+    <path d="M128 46 a18 18 0 0 1 12 -9" fill="none" stroke="#ffffff" stroke-opacity="0.8" stroke-width="3" stroke-linecap="round"/>
+  </g>
+</svg>
