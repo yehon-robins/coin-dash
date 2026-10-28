@@ -88,9 +88,11 @@ class CoinDash extends Phaser.Scene {
 
   addDrone(x, y, angle) {
     const c = COIN_DASH;
-    const drone = this.add.rectangle(x, y, 26, 26, c.colors.drone);
+    const drone = this.add.image(x, y, window.makeDroneTexture(this));
     this.drones.add(drone);
+    drone.body.setSize(26, 26, true);
     drone.body.setCollideWorldBounds(true).setBounce(1, 1);
+    window.spinDrone(drone);
     drone.body.setVelocity(Math.cos(angle) * c.droneSpeed, Math.sin(angle) * c.droneSpeed);
   }
 
