@@ -14,7 +14,7 @@ window.COIN_DASH = {
   coinIdleSeconds: 10,
   coinIdleDecay: 0.85,
   colors: {
-    background: 0x101c31, player: 0x71e8ce, coin: 0xffd166, drone: 0xff657a,
+    background: 0x160d2e, player: 0x71e8ce, coin: 0xffd166, drone: 0xff657a,
     coinHighlight: 0xfff3c4, bomb: 0xff5a1f, bombFuse: 0x2b1a12, bombFuseSpark: 0xffe066
   }
 };
