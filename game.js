@@ -15,9 +15,13 @@ class CoinDash extends Phaser.Scene {
     this.player = this.add.rectangle(c.width / 2, c.height / 2, 24, 24, c.colors.player);
     this.physics.add.existing(this.player);
     this.player.body.setCollideWorldBounds(true);
-    this.coin = this.add.circle(100, 100, 9, c.colors.coin);
+    const art = window.COIN_ART;
+    this.coin = this.add.image(100, 100, window.makeCoinTexture(this));
     this.physics.add.existing(this.coin);
-    this.coin.body.setCircle(9);
+    this.coin.body.setCircle(art.radius, art.size / 2 - art.radius, art.size / 2 - art.radius);
+    // Gentle wobble so the coin glints; scene tweens are cleared on restart (R).
+    this.tweens.add({ targets: this.coin, angle: { from: -8, to: 8 }, duration: 900,
+      ease: 'Sine.easeInOut', yoyo: true, repeat: -1 });
     this.placeCoin();
     this.drones = this.physics.add.group();
     for (let i = 0; i < c.droneCount; i++) {
