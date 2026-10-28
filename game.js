@@ -19,9 +19,10 @@ class CoinDash extends Phaser.Scene {
     this.physics.add.existing(this.coin);
     this.coin.body.setCircle(9);
     this.placeCoin();
-    this.bomb = this.add.circle(700, 400, 9, c.colors.bomb);
+    const bombGeom = this.makeBombTexture();
+    this.bomb = this.add.image(700, 400, 'bomb').setOrigin(0.5, bombGeom.originY);
     this.physics.add.existing(this.bomb);
-    this.bomb.body.setCircle(9);
+    this.bomb.body.setCircle(bombGeom.radius, bombGeom.offsetX, bombGeom.offsetY);
     this.placeBomb();
     this.drones = this.physics.add.group();
     for (let i = 0; i < c.droneCount; i++) {
@@ -38,6 +39,7 @@ class CoinDash extends Phaser.Scene {
     });
     this.physics.add.overlap(this.player, this.bomb, () => {
       if (this.finished) return;
+      this.explodeAt(this.bomb.x, this.bomb.y);
       this.score = Math.max(0, this.score - 2);
       this.placeBomb();
     });
@@ -67,6 +69,44 @@ class CoinDash extends Phaser.Scene {
     g.destroy();
   }
 
+  // Bakes a cartoon-bomb texture (round body + fuse + spark highlight) so the
+  // bomb reads as an actual bomb instead of a flat circle, drawn entirely
+  // in-engine like the coin's gradient texture. Returns the geometry needed
+  // to line up the circular physics body with the drawn body and to anchor
+  // the image on the ball's center (matching the old Circle's x/y meaning).
+  makeBombTexture() {
+    const c = COIN_DASH;
+    const radius = 15;
+    const fuseWidth = 4;
+    const fuseHeight = 8;
+    const sparkRadius = 3;
+    const topMargin = fuseHeight + sparkRadius * 2; // room above the body for fuse + spark
+    const width = radius * 2;
+    const height = topMargin + radius * 2;
+    const cx = radius;
+    const cy = topMargin + radius;
+
+    const g = this.add.graphics();
+    // Fuse: a short dark wick sticking out of the top of the body.
+    g.fillStyle(c.colors.bombFuse, 1);
+    g.fillRect(cx - fuseWidth / 2, topMargin - fuseHeight, fuseWidth, fuseHeight);
+    // Body: bright, alarming red-orange so it reads clearly against the navy background.
+    g.fillStyle(c.colors.bomb, 1);
+    g.fillCircle(cx, cy, radius);
+    // Soft glossy highlight for a bit of shading on the body.
+    g.fillStyle(0xffffff, 0.16);
+    g.fillCircle(cx - radius * 0.35, cy - radius * 0.35, radius * 0.38);
+    // Spark at the fuse tip: a warm glow with a bright white core.
+    g.fillStyle(c.colors.bombFuseSpark, 1);
+    g.fillCircle(cx, topMargin - fuseHeight, sparkRadius);
+    g.fillStyle(0xffffff, 0.8);
+    g.fillCircle(cx, topMargin - fuseHeight, sparkRadius * 0.45);
+    g.generateTexture('bomb', width, height);
+    g.destroy();
+
+    return { radius, offsetX: cx - radius, offsetY: cy - radius, originY: cy / height };
+  }
+
   placeCoin() {
     const c = COIN_DASH;
     // Avoid spawning the next coin directly underneath the player.
@@ -82,14 +122,33 @@ class CoinDash extends Phaser.Scene {
   placeBomb() {
     const c = COIN_DASH;
     // Avoid spawning the bomb on the player or right on top of the coin.
+    // The fuse/spark stick up above the body's center, so keep extra
+    // headroom (78 instead of 70) to keep the whole sprite on-screen.
     let x, y;
     do {
       x = Phaser.Math.Between(25, c.width - 25);
-      y = Phaser.Math.Between(70, c.height - 25);
+      y = Phaser.Math.Between(78, c.height - 25);
     } while (Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y) < 60
       || Phaser.Math.Distance.Between(x, y, this.coin.x, this.coin.y) < 40);
     this.bomb.setPosition(x, y);
     this.bomb.body.reset(x, y);
+  }
+
+  // A quick, self-cleaning burst of flat-color circles (scaled up and
+  // faded out via tween) so touching a bomb reads as a small explosion,
+  // without needing any image/particle assets.
+  explodeAt(x, y) {
+    const c = COIN_DASH;
+    const outer = this.add.circle(x, y, 14, c.colors.bomb, 0.85).setScale(0.2);
+    const inner = this.add.circle(x, y, 7, c.colors.bombFuseSpark, 0.95).setScale(0.2);
+    this.tweens.add({
+      targets: [outer, inner],
+      scale: 2.2,
+      alpha: 0,
+      duration: 260,
+      ease: 'Cubic.easeOut',
+      onComplete: () => { outer.destroy(); inner.destroy(); }
+    });
   }
 
   update() {
