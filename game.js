@@ -12,8 +12,9 @@ class CoinDash extends Phaser.Scene {
     this.add.grid(c.width / 2, c.height / 2, c.width, c.height, 40, 40,
       c.colors.background, 1, 0x24334b, 0.45);
     this.hud = this.add.text(18, 12, '', { font: '18px monospace', color: '#ffffff' });
-    this.player = this.add.rectangle(c.width / 2, c.height / 2, 24, 24, c.colors.player);
+    this.player = this.add.image(c.width / 2, c.height / 2, window.makeDragonTexture(this));
     this.physics.add.existing(this.player);
+    this.player.body.setSize(24, 24, true); // same 24x24 hitbox as the old square, centred
     this.player.body.setCollideWorldBounds(true);
     this.coin = this.add.circle(100, 100, 9, c.colors.coin);
     this.physics.add.existing(this.coin);
@@ -80,6 +81,7 @@ class CoinDash extends Phaser.Scene {
       - Number(this.cursors.up.isDown || this.keys.W.isDown);
     const direction = new Phaser.Math.Vector2(dx, dy).normalize().scale(COIN_DASH.playerSpeed);
     this.player.body.setVelocity(direction.x, direction.y);
+    if (dx !== 0) this.player.setFlipX(dx < 0); // face the direction of travel
     const seconds = Math.max(0, Math.ceil((this.deadline - this.time.now) / 1000));
     this.hud.setText(`Coins: ${this.score}                       Time: ${seconds}s`);
     if (seconds === 0) this.finish('Time is up!');
