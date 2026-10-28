@@ -15,9 +15,11 @@ class CoinDash extends Phaser.Scene {
     this.hud = this.add.text(18, 12, '', { font: '18px monospace', color: '#ffffff',
       stroke: '#160d2e', strokeThickness: 3,
       shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 2, fill: true } });
-    this.player = this.add.image(c.width / 2, c.height / 2, window.makeDragonTexture(this));
+    // In-play objects are drawn at objectScale. Arcade bodies scale with the sprite, so hitbox
+    // sizes and offsets below stay in texture pixels and keep matching the art.
+    this.player = this.add.image(c.width / 2, c.height / 2, window.makeDragonTexture(this)).setScale(c.objectScale);
     this.physics.add.existing(this.player);
-    // Same 24x24 hitbox as the old square, placed over the dragon's head and front body (not the tail).
+    // 24x24 hitbox (in texture pixels) placed over the dragon's head and front body (not the tail).
     const hit = window.DRAGON_HITBOX;
     this.player.body.setSize(hit.size, hit.size, false).setOffset(hit.x, hit.y);
     this.player.body.setCollideWorldBounds(true);
@@ -29,7 +31,7 @@ class CoinDash extends Phaser.Scene {
     this.nextCoinDuplicateAt = 10;
     this.addCoin();
     const bombGeom = this.makeBombTexture();
-    this.bomb = this.add.image(700, 400, 'bomb').setOrigin(0.5, bombGeom.originY);
+    this.bomb = this.add.image(700, 400, 'bomb').setOrigin(0.5, bombGeom.originY).setScale(c.objectScale);
     this.physics.add.existing(this.bomb);
     this.bomb.body.setCircle(bombGeom.radius, bombGeom.offsetX, bombGeom.offsetY);
     this.placeBomb();
@@ -102,7 +104,7 @@ class CoinDash extends Phaser.Scene {
 
   addDrone(x, y, angle) {
     const c = COIN_DASH;
-    const drone = this.add.image(x, y, window.makeDroneTexture(this));
+    const drone = this.add.image(x, y, window.makeDroneTexture(this)).setScale(c.objectScale);
     this.drones.add(drone);
     drone.body.setSize(26, 26, true);
     drone.body.setCollideWorldBounds(true).setBounce(1, 1);
@@ -130,7 +132,7 @@ class CoinDash extends Phaser.Scene {
   // nextCoinDuplicateAt) is crossed.
   addCoin() {
     const art = window.COIN_ART;
-    const coin = this.add.image(0, 0, window.makeCoinTexture(this));
+    const coin = this.add.image(0, 0, window.makeCoinTexture(this)).setScale(COIN_DASH.objectScale);
     this.coins.add(coin);
     coin.body.setCircle(art.radius, art.size / 2 - art.radius, art.size / 2 - art.radius);
     coin.body.setCollideWorldBounds(true).setBounce(1, 1);
@@ -235,11 +237,12 @@ class CoinDash extends Phaser.Scene {
   // without needing any image/particle assets.
   explodeAt(x, y) {
     const c = COIN_DASH;
-    const outer = this.add.circle(x, y, 14, c.colors.bomb, 0.85).setScale(0.2);
-    const inner = this.add.circle(x, y, 7, c.colors.bombFuseSpark, 0.95).setScale(0.2);
+    const s = c.objectScale; // burst matches the (scaled) bomb size
+    const outer = this.add.circle(x, y, 14, c.colors.bomb, 0.85).setScale(0.2 * s);
+    const inner = this.add.circle(x, y, 7, c.colors.bombFuseSpark, 0.95).setScale(0.2 * s);
     this.tweens.add({
       targets: [outer, inner],
-      scale: 2.2,
+      scale: 2.2 * s,
       alpha: 0,
       duration: 260,
       ease: 'Cubic.easeOut',

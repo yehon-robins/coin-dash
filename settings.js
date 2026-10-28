@@ -2,6 +2,7 @@
 window.COIN_DASH = {
   width: 800,
   height: 500,
+  objectScale: 0.8, // player, coin, bomb and drones (art + hitboxes); HUD and sky stay full size
   roundSeconds: 60,
   playerSpeed: 240,
   droneSpeed: 105,
