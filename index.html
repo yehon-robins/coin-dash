@@ -4,14 +4,29 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Coin Dash — Lab 3 starter</title>
 <link rel="stylesheet" href="style.css">
+<script>
+// Apply any saved theme before the body renders, so there's no flash of
+// the wrong theme on reload. Kept inline (rather than in theme.js) so it
+// runs synchronously as soon as the stylesheet above is parsed.
+(function () {
+  try {
+    if (localStorage.getItem('coin-dash-theme') === 'light') {
+      document.documentElement.classList.add('light-theme');
+    }
+  } catch (e) {
+    // localStorage unavailable (e.g. private browsing) — fall back to dark.
+  }
+})();
+</script>
 </head>
 <body>
 <main>
-  <header><p>LAB 3 · STARTER GAME</p><h1>Coin Dash</h1>
+  <header><button id="theme-toggle" type="button" class="theme-toggle"></button><p>LAB 3 · STARTER GAME</p><h1>Coin Dash</h1>
   <p>Collect yellow coins. Dodge red drones. How many can you collect in 60 seconds?</p></header>
   <div id="game" aria-label="Coin Dash game. Move with arrow keys or WASD."></div>
   <p>Move: <strong>arrow keys / WASD</strong> · Pause: <strong>P</strong> · Restart: <strong>R</strong></p>
 </main>
+<script src="theme.js"></script>
 <script src="vendor/phaser-3.90.0.min.js"></script>
 <script src="sfx-coin.js"></script>
 <script src="sfx-hurt.js"></script>
