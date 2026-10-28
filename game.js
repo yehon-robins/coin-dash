@@ -9,9 +9,10 @@ class CoinDash extends Phaser.Scene {
     this.paused = false;
     this.deadline = this.time.now + c.roundSeconds * 1000;
     this.physics.world.setBounds(0, 44, c.width, c.height - 44);
-    this.add.grid(c.width / 2, c.height / 2, c.width, c.height, 40, 40,
-      c.colors.background, 1, 0x24334b, 0.45);
-    this.hud = this.add.text(18, 12, '', { font: '18px monospace', color: '#ffffff' });
+    window.drawSunsetSky(this, c.width, c.height);
+    this.hud = this.add.text(18, 12, '', { font: '18px monospace', color: '#ffffff',
+      stroke: '#160d2e', strokeThickness: 3,
+      shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 2, fill: true } });
     this.player = this.add.rectangle(c.width / 2, c.height / 2, 24, 24, c.colors.player);
     this.physics.add.existing(this.player);
     this.player.body.setCollideWorldBounds(true);
