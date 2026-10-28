@@ -14,6 +14,7 @@ class CoinDash extends Phaser.Scene {
     this.player = this.add.rectangle(c.width / 2, c.height / 2, 24, 24, c.colors.player);
     this.physics.add.existing(this.player);
     this.player.body.setCollideWorldBounds(true);
+    this.velocity = new Phaser.Math.Vector2(c.playerSpeed, 0);
     this.coin = this.add.circle(100, 100, 9, c.colors.coin);
     this.physics.add.existing(this.coin);
     this.coin.body.setCircle(9);
@@ -55,8 +56,8 @@ class CoinDash extends Phaser.Scene {
       - Number(this.cursors.left.isDown || this.keys.A.isDown);
     const dy = Number(this.cursors.down.isDown || this.keys.S.isDown)
       - Number(this.cursors.up.isDown || this.keys.W.isDown);
-    const direction = new Phaser.Math.Vector2(dx, dy).normalize().scale(COIN_DASH.playerSpeed);
-    this.player.body.setVelocity(direction.x, direction.y);
+    if (dx || dy) this.velocity.set(dx, dy).normalize().scale(COIN_DASH.playerSpeed);
+    this.player.body.setVelocity(this.velocity.x, this.velocity.y);
     const seconds = Math.max(0, Math.ceil((this.deadline - this.time.now) / 1000));
     this.hud.setText(`Coins: ${this.score}                       Time: ${seconds}s`);
     if (seconds === 0) this.finish('Time is up!');
