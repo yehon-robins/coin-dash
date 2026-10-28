@@ -13,8 +13,11 @@ class CoinDash extends Phaser.Scene {
     this.hud = this.add.text(18, 12, '', { font: '18px monospace', color: '#ffffff',
       stroke: '#160d2e', strokeThickness: 3,
       shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 2, fill: true } });
-    this.player = this.add.rectangle(c.width / 2, c.height / 2, 24, 24, c.colors.player);
+    this.player = this.add.image(c.width / 2, c.height / 2, window.makeDragonTexture(this));
     this.physics.add.existing(this.player);
+    // Same 24x24 hitbox as the old square, placed over the dragon's head and front body (not the tail).
+    const hit = window.DRAGON_HITBOX;
+    this.player.body.setSize(hit.size, hit.size, false).setOffset(hit.x, hit.y);
     this.player.body.setCollideWorldBounds(true);
     this.velocity = new Phaser.Math.Vector2(c.playerSpeed, 0);
     const art = window.COIN_ART;
@@ -214,6 +217,11 @@ class CoinDash extends Phaser.Scene {
       - Number(this.cursors.up.isDown || this.keys.W.isDown);
     if (dx || dy) this.velocity.set(dx, dy).normalize().scale(COIN_DASH.playerSpeed);
     this.player.body.setVelocity(this.velocity.x, this.velocity.y);
+    if (this.velocity.x !== 0) { // face the direction of travel and mirror the hitbox so it stays on the head
+      const hit = window.DRAGON_HITBOX;
+      this.player.setFlipX(this.velocity.x < 0);
+      this.player.body.setOffset(this.velocity.x < 0 ? this.player.width - hit.x - hit.size : hit.x, hit.y);
+    }
     // Every full 10s window without a pickup, ease the coin's speed down a
     // notch (toward coinMinSpeed) so an idle player gets a breather. Gated by
     // idleSlowdowns so this fires once per window, not every frame.
