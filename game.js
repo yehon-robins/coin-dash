@@ -17,17 +17,12 @@ class CoinDash extends Phaser.Scene {
     this.player.body.setCollideWorldBounds(true);
     this.velocity = new Phaser.Math.Vector2(c.playerSpeed, 0);
     this.makeCoinTexture();
-    this.coin = this.add.image(100, 100, 'coin');
-    this.physics.add.existing(this.coin);
-    this.coin.body.setCircle(9);
-    this.coin.body.setCollideWorldBounds(true).setBounce(1, 1);
+    this.coins = this.physics.add.group();
     this.coinSpeed = c.coinBaseSpeed;
     this.lastCoinPickup = this.time.now;
     this.idleSlowdowns = 0;
-    this.placeCoin();
-    // placeCoin() -> body.reset() just zeroed the velocity, so setCoinSpeed()
-    // sees a stationary body and picks a fresh random direction for us.
-    this.setCoinSpeed(this.coinSpeed);
+    this.nextCoinDuplicateAt = 10;
+    this.addCoin();
     const bombGeom = this.makeBombTexture();
     this.bomb = this.add.image(700, 400, 'bomb').setOrigin(0.5, bombGeom.originY);
     this.physics.add.existing(this.bomb);
@@ -36,20 +31,24 @@ class CoinDash extends Phaser.Scene {
     this.drones = this.physics.add.group();
     for (let i = 0; i < c.droneCount; i++) this.addDrone(90 + i * 270, 100, (35 + i * 105) * Math.PI / 180);
     this.nextDroneAt = c.coinsPerExtraDrone;
-    this.physics.add.overlap(this.player, this.coin, () => {
+    this.physics.add.overlap(this.player, this.coins, (player, coin) => {
       if (this.finished) return;
       this.score++;
       window.playCoinSound();
       this.lastCoinPickup = this.time.now;
       this.idleSlowdowns = 0;
       this.setCoinSpeed(this.coinSpeed + c.coinSpeedIncrement);
-      this.placeCoin();
+      this.placeCoin(coin);
       // Fresh random heading at the (now faster) speed, rather than
       // continuing on the pre-teleport direction.
       this.setCoinSpeed(this.coinSpeed);
       if (this.score >= this.nextDroneAt) {
         this.nextDroneAt += c.coinsPerExtraDrone;
         this.spawnDrone();
+      }
+      if (this.score >= this.nextCoinDuplicateAt) {
+        this.nextCoinDuplicateAt += 10;
+        this.addCoin();
       }
     });
     this.physics.add.overlap(this.player, this.bomb, () => {
@@ -105,6 +104,24 @@ class CoinDash extends Phaser.Scene {
     this.addDrone(x, y, Phaser.Math.DegToRad(Phaser.Math.Between(25, 65) + 90 * Phaser.Math.Between(0, 3)));
   }
 
+  // Creates one new coin (physics body + collide/bounce), places it away from
+  // the player and any other coins currently in play, and gives it a fresh
+  // random heading at the current shared coin speed. Used both for the
+  // starting coin and for each coin added when a duplication threshold
+  // (every 10 points, see nextCoinDuplicateAt) is crossed.
+  addCoin() {
+    const coin = this.add.image(0, 0, 'coin');
+    this.coins.add(coin);
+    coin.body.setCircle(9);
+    coin.body.setCollideWorldBounds(true).setBounce(1, 1);
+    this.placeCoin(coin);
+    // placeCoin() -> body.reset() just zeroed this coin's velocity, so
+    // setCoinSpeed() sees a stationary body and picks a fresh random
+    // direction for it, leaving any other coins' headings untouched.
+    this.setCoinSpeed(this.coinSpeed);
+    return coin;
+  }
+
   // Bakes a small radial-gradient texture (gold edge to pale highlight center)
   // so the coin reads as shiny instead of a flat fill, drawn entirely in-engine.
   makeCoinTexture() {
@@ -125,17 +142,20 @@ class CoinDash extends Phaser.Scene {
     g.destroy();
   }
 
-  // Recomputes the coin's velocity from its current direction of travel at a
-  // new speed (clamped to the configured min/max), so changing speed never
-  // picks an arbitrary new heading. Right after body.reset() the body is
-  // stationary (velocity 0,0), in which case this picks a fresh random
-  // heading instead.
+  // Recomputes every coin's velocity from its own current direction of
+  // travel at a new shared speed (clamped to the configured min/max), so
+  // changing speed never picks an arbitrary new heading and all coins stay
+  // in lockstep on speed. Any coin whose body is stationary (velocity 0,0 —
+  // e.g. right after body.reset()) gets a fresh random heading instead,
+  // without disturbing the other coins' existing headings.
   setCoinSpeed(newSpeed) {
     const c = COIN_DASH;
     this.coinSpeed = Phaser.Math.Clamp(newSpeed, c.coinMinSpeed, c.coinMaxSpeed);
-    const v = this.coin.body.velocity;
-    const angle = (v.x === 0 && v.y === 0) ? Phaser.Math.Angle.Random() : Math.atan2(v.y, v.x);
-    this.coin.body.setVelocity(Math.cos(angle) * this.coinSpeed, Math.sin(angle) * this.coinSpeed);
+    this.coins.getChildren().forEach((coin) => {
+      const v = coin.body.velocity;
+      const angle = (v.x === 0 && v.y === 0) ? Phaser.Math.Angle.Random() : Math.atan2(v.y, v.x);
+      coin.body.setVelocity(Math.cos(angle) * this.coinSpeed, Math.sin(angle) * this.coinSpeed);
+    });
   }
 
   // Bakes a cartoon-bomb texture (round body + fuse + spark highlight) so the
@@ -176,21 +196,25 @@ class CoinDash extends Phaser.Scene {
     return { radius, offsetX: cx - radius, offsetY: cy - radius, originY: cy / height };
   }
 
-  placeCoin() {
+  // Repositions one coin, avoiding the player and every other coin
+  // currently in play (so a just-relocated or newly duplicated coin doesn't
+  // land stacked on another and get picked up for free).
+  placeCoin(coin) {
     const c = COIN_DASH;
-    // Avoid spawning the next coin directly underneath the player.
+    const otherCoins = this.coins.getChildren().filter((other) => other !== coin);
     let x, y;
     do {
       x = Phaser.Math.Between(25, c.width - 25);
       y = Phaser.Math.Between(70, c.height - 25);
-    } while (Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y) < 60);
-    this.coin.setPosition(x, y);
-    this.coin.body.reset(x, y);
+    } while (Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y) < 60
+      || otherCoins.some((other) => Phaser.Math.Distance.Between(x, y, other.x, other.y) < 40));
+    coin.setPosition(x, y);
+    coin.body.reset(x, y);
   }
 
   placeBomb() {
     const c = COIN_DASH;
-    // Avoid spawning the bomb on the player or right on top of the coin.
+    // Avoid spawning the bomb on the player or right on top of any coin.
     // The fuse/spark stick up above the body's center, so keep extra
     // headroom (78 instead of 70) to keep the whole sprite on-screen.
     let x, y;
@@ -198,7 +222,7 @@ class CoinDash extends Phaser.Scene {
       x = Phaser.Math.Between(25, c.width - 25);
       y = Phaser.Math.Between(78, c.height - 25);
     } while (Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y) < 60
-      || Phaser.Math.Distance.Between(x, y, this.coin.x, this.coin.y) < 40);
+      || this.coins.getChildren().some((coin) => Phaser.Math.Distance.Between(x, y, coin.x, coin.y) < 40));
     this.bomb.setPosition(x, y);
     this.bomb.body.reset(x, y);
   }
