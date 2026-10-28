@@ -19,6 +19,10 @@ class CoinDash extends Phaser.Scene {
     this.physics.add.existing(this.coin);
     this.coin.body.setCircle(9);
     this.placeCoin();
+    this.bomb = this.add.circle(700, 400, 9, c.colors.bomb);
+    this.physics.add.existing(this.bomb);
+    this.bomb.body.setCircle(9);
+    this.placeBomb();
     this.drones = this.physics.add.group();
     for (let i = 0; i < c.droneCount; i++) {
       const drone = this.add.rectangle(90 + i * 270, 100, 26, 26, c.colors.drone);
@@ -31,6 +35,11 @@ class CoinDash extends Phaser.Scene {
       if (this.finished) return;
       this.score++;
       this.placeCoin();
+    });
+    this.physics.add.overlap(this.player, this.bomb, () => {
+      if (this.finished) return;
+      this.score = Math.max(0, this.score - 2);
+      this.placeBomb();
     });
     this.physics.add.overlap(this.player, this.drones, () => this.finish('A drone caught you!'));
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -68,6 +77,19 @@ class CoinDash extends Phaser.Scene {
     } while (Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y) < 60);
     this.coin.setPosition(x, y);
     this.coin.body.reset(x, y);
+  }
+
+  placeBomb() {
+    const c = COIN_DASH;
+    // Avoid spawning the bomb on the player or right on top of the coin.
+    let x, y;
+    do {
+      x = Phaser.Math.Between(25, c.width - 25);
+      y = Phaser.Math.Between(70, c.height - 25);
+    } while (Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y) < 60
+      || Phaser.Math.Distance.Between(x, y, this.coin.x, this.coin.y) < 40);
+    this.bomb.setPosition(x, y);
+    this.bomb.body.reset(x, y);
   }
 
   update() {
