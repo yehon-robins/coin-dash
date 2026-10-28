@@ -17,11 +17,14 @@ class CoinDash extends Phaser.Scene {
     this.physics.add.existing(this.player);
     this.player.body.setCollideWorldBounds(true);
     this.velocity = new Phaser.Math.Vector2(c.playerSpeed, 0);
-    this.makeCoinTexture();
-    this.coin = this.add.image(100, 100, 'coin');
+    const art = window.COIN_ART;
+    this.coin = this.add.image(100, 100, window.makeCoinTexture(this));
     this.physics.add.existing(this.coin);
-    this.coin.body.setCircle(9);
+    this.coin.body.setCircle(art.radius, art.size / 2 - art.radius, art.size / 2 - art.radius);
     this.coin.body.setCollideWorldBounds(true).setBounce(1, 1);
+    // Gentle wobble so the coin glints; scene tweens are cleared on restart (R).
+    this.tweens.add({ targets: this.coin, angle: { from: -8, to: 8 }, duration: 900,
+      ease: 'Sine.easeInOut', yoyo: true, repeat: -1 });
     this.coinSpeed = c.coinBaseSpeed;
     this.lastCoinPickup = this.time.now;
     this.idleSlowdowns = 0;
@@ -106,26 +109,6 @@ class CoinDash extends Phaser.Scene {
     } while (Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y) < 150);
     // A diagonal-ish heading (25-65 degrees within a random quadrant).
     this.addDrone(x, y, Phaser.Math.DegToRad(Phaser.Math.Between(25, 65) + 90 * Phaser.Math.Between(0, 3)));
-  }
-
-  // Bakes a small radial-gradient texture (gold edge to pale highlight center)
-  // so the coin reads as shiny instead of a flat fill, drawn entirely in-engine.
-  makeCoinTexture() {
-    const c = COIN_DASH;
-    const radius = 9;
-    const rings = [
-      { r: radius, color: c.colors.coin },
-      { r: radius * 0.78, color: 0xffdc85 },
-      { r: radius * 0.56, color: 0xffe8a5 },
-      { r: radius * 0.33, color: c.colors.coinHighlight }
-    ];
-    const g = this.add.graphics();
-    rings.forEach(({ r, color }) => {
-      g.fillStyle(color, 1);
-      g.fillCircle(radius, radius, r);
-    });
-    g.generateTexture('coin', radius * 2, radius * 2);
-    g.destroy();
   }
 
   // Recomputes the coin's velocity from its current direction of travel at a
